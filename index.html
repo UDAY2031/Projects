@@ -165,6 +165,7 @@
         let gameState = 'BOOTING';
         let snake, foods, direction, score, gameLoopInterval, currentSpeed, highScore;
         let directionChangedThisTick = false;
+        let queuedDirection = null; // FIX: Variable to queue input during teleport
         foods = [];
         let frameCounter = 0;
         let audioCtx;
@@ -371,6 +372,22 @@
             if (teleportAnimation.originalSnake.length === 0 && teleportAnimation.newSnake.length === snake.length) {
                 teleportAnimation.active = false;
                 snake = [...teleportAnimation.newSnake];
+                
+                // FIX: Apply any queued direction changes from user input during animation
+                if (queuedDirection) {
+                    const newDir = queuedDirection;
+                    const isReversing = (newDir === 'up' && direction.y === 1) || (newDir === 'down' && direction.y === -1) ||
+                                        (newDir === 'left' && direction.x === 1) || (newDir === 'right' && direction.x === -1);
+
+                    if (!isReversing) {
+                        if (newDir === 'up' && direction.y === 0) { direction = { x: 0, y: -1 }; }
+                        if (newDir === 'down' && direction.y === 0) { direction = { x: 0, y: 1 }; }
+                        if (newDir === 'left' && direction.x === 0) { direction = { x: -1, y: 0 }; }
+                        if (newDir === 'right' && direction.x === 0) { direction = { x: 1, y: 0 }; }
+                    }
+                    queuedDirection = null; 
+                }
+
                 manageFood();
                 updateUI();
                 gameLoopInterval = setInterval(gameLoop, currentSpeed);
@@ -379,6 +396,7 @@
             
             setTimeout(animateTeleport, currentSpeed);
         }
+
 
         function levelComplete() {
             clearInterval(gameLoopInterval);
@@ -631,7 +649,13 @@
         function saveHighScore() { localStorage.setItem('mambaHighScore', highScore); }
 
         function handleDirectionChange(newDir) {
-            if (teleportAnimation.active || directionChangedThisTick) return;
+            // FIX: Queue the input if the teleport animation is active
+            if (teleportAnimation.active) {
+                queuedDirection = newDir;
+                return;
+            }
+            
+            if (directionChangedThisTick) return;
 
             if (direction.x === 0 && direction.y === 0) {
                 if (newDir === 'up') direction = { x: 0, y: -1 };
@@ -677,7 +701,7 @@
             }
              if (gameState === 'GAME_OVER') { loadGodLevel(currentGodLevel); return; }
              if (gameState === 'LEVEL_COMPLETE') { startGodLevel(currentGodLevel); return; }
-             if(gameState === 'PLAYING') {
+             if(gameState === 'PLAYING' || teleportAnimation.active) { // Allow input during teleport
                  switch (key) {
                     case 'ArrowUp': case 'w': handleDirectionChange('up'); break;
                     case 'ArrowDown': case 's': handleDirectionChange('down'); break;
