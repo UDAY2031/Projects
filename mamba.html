@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Monochrome Mamba - Neon</title>
+    <style>
+        @font-face {
+            font-family: 'Pixel';
+            src: url('data:font/woff2;base64,d09GMgABAAAAAAMMAAsAAAAAB3AAAAL/AAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEwCYIAgqB8g/BgsGAAQgA4RMAwREBcwZyAuBCAeFVyNCkPy+5H9/0D7BDyZJ2ADk08P+z6pS1sT8/mJgh2_sQITJqNIo4KCmKMR5lC2Kud0T7eD7/t+51XEQAAfGfA0g8QLN8BGYElkMhSTp0pNHpU8tTPp5U6dkmzVlB8T//5J01Kk1RpGqOQjE2sJIOhUUhS+L5fD5fL5fL5fD5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5f-L5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL5fL...=') format('woff2');
+        }
+
+        :root {
+            --screen-bg: #0d121c;
+            --font-color: #E5E7EB;
+            --accent-color: #38BDF8;
+            --snake-color: #F4F4F5;
+            --food-color: #F472B6;
+            --wall-color-1: #374151;
+            --wall-color-2: #4B5563;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            background-color: var(--screen-bg);
+            touch-action: none;
+            font-family: 'Pixel', monospace;
+            color: var(--font-color);
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+
+        #ui-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+            padding: 1.5rem 2rem;
+            background: linear-gradient(to bottom, rgba(13, 18, 28, 0.8), transparent);
+        }
+        
+        .score-display {
+            display: flex;
+            gap: 2rem;
+            font-size: 1.1em;
+        }
+
+        .level-controls {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        #level {
+            font-size: 1.1em;
+            color: var(--accent-color);
+            text-shadow: 0 0 8px var(--accent-color);
+        }
+
+        .icon-btn {
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            color: var(--font-color);
+            transition: color 0.2s ease, transform 0.2s ease;
+            display: none; /* Hidden by default */
+        }
+
+        .icon-btn:hover {
+            color: var(--accent-color);
+            transform: scale(1.1);
+        }
+
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="ui-container">
+        <div class="score-display">
+            <div id="score">SCORE: 0000</div>
+            <div id="high-score">HI: 0000</div>
+        </div>
+        <div class="level-controls">
+            <div id="level">LVL: 1</div>
+            <div id="back-btn" class="icon-btn" title="Exit Level">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" /></svg>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const highScoreElement = document.getElementById('high-score');
+        const levelElement = document.getElementById('level');
+        const backBtn = document.getElementById('back-btn');
+
+        // --- Game Configuration ---
+        let GRID_SIZE = 20;
+        const GRID_COUNT = 16; 
+        
+        // --- Game State & Drawing Offset Variables ---
+        let gameState = 'BOOTING';
+        let snake, foods, direction, score, gameLoopInterval, currentSpeed, highScore;
+        let directionChangedThisTick = false;
+        let queuedDirection = null; 
+        foods = [];
+        let frameCounter = 0;
+        let audioCtx;
+        let audioInitialized = false;
+        let walls = [];
+        let teleportAnimation = { active: false, originalSnake: [], newSnake: [] };
+        let currentGodLevel = 0;
+        let offsetX = 0, offsetY = 0; // For centering the game on the canvas
+
+        // --- God Levels Data ---
+        const godLevels = [
+            { name: "CLOSING IN", type: "randomWall", initialSpeed: 250, speedDecrement: 5, minSpeed: 80 },
+            { name: "QUANTUM LEAP", type: "teleport", initialSpeed: 250, speedDecrement: 5, minSpeed: 80 },
+            { 
+                name: "THE GAUNTLET", 
+                type: "maze",
+                initialSpeed: 260, 
+                speedDecrement: 6,
+                minSpeed: 90,
+                grid: [
+                    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                    [1,0,1,1,1,1,0,0,0,0,1,1,1,1,0,1],
+                    [1,0,1,0,0,0,0,0,0,0,0,0,0,1,0,1],
+                    [1,0,1,0,1,1,0,0,0,0,1,1,0,1,0,1],
+                    [1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,1],
+                    [1,0,1,0,1,0,0,0,0,0,0,1,0,1,0,1],
+                    [1,0,1,0,0,0,0,0,0,0,0,0,0,1,0,1],
+                    [1,0,1,0,0,0,0,0,0,0,0,0,0,1,0,1],
+                    [1,0,1,0,1,0,0,0,0,0,0,1,0,1,0,1],
+                    [1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,1],
+                    [1,0,1,0,1,1,0,0,0,0,1,1,0,1,0,1],
+                    [1,0,1,0,0,0,0,0,0,0,0,0,0,1,0,1],
+                    [1,0,1,1,1,1,0,0,0,0,1,1,1,1,0,1],
+                    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+                ]
+            }
+        ];
+
+        // --- Audio Functions ---
+        function initAudio() { if (!audioInitialized && (window.AudioContext || window.webkitAudioContext)) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); audioInitialized = true; } catch(e) { console.error("Web Audio API not supported"); } } }
+        function playStartSound() { if (!audioInitialized) return; const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.type='square';o.frequency.setValueAtTime(220,audioCtx.currentTime);o.frequency.exponentialRampToValueAtTime(440,audioCtx.currentTime+0.2);g.gain.setValueAtTime(0.1,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+0.3);o.start(audioCtx.currentTime);o.stop(audioCtx.currentTime+0.3); }
+        function playEatSound() { if (!audioInitialized) return; const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.type='sine';o.frequency.setValueAtTime(523.25,audioCtx.currentTime);g.gain.setValueAtTime(0.2,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+0.1);o.start(audioCtx.currentTime);o.stop(audioCtx.currentTime+0.1); }
+        function playGameOverSound() { if (!audioInitialized) return; const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.type='sawtooth';o.frequency.setValueAtTime(440,audioCtx.currentTime);o.frequency.exponentialRampToValueAtTime(110,audioCtx.currentTime+0.5);g.gain.setValueAtTime(0.2,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+0.5);o.start(audioCtx.currentTime);o.stop(audioCtx.currentTime+0.5); }
+
+        // --- Layout ---
+        function setupResponsiveLayout() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const gridSizeX = Math.floor(canvas.width / GRID_COUNT);
+            const gridSizeY = Math.floor(canvas.height / GRID_COUNT);
+            GRID_SIZE = Math.max(8, Math.min(gridSizeX, gridSizeY)); // Keep cells square
+            
+            const gameWidth = GRID_COUNT * GRID_SIZE;
+            const gameHeight = GRID_COUNT * GRID_SIZE;
+
+            offsetX = (canvas.width - gameWidth) / 2;
+            offsetY = (canvas.height - gameHeight) / 2;
+
+            const scaleFactor = gameWidth / 480; 
+            document.getElementById('ui-container').style.fontSize = `${Math.max(12, 16 * scaleFactor)}px`;
+            
+            if (gameState !== 'BOOTING') draw();
+        }
+
+        // --- Game Flow & State Management ---
+        function bootSequence() {
+            let bootText = "MONOCHROME MAMBA", shownText = "", charIndex = 0;
+            draw();
+            let interval = setInterval(() => {
+                shownText += bootText[charIndex];
+                drawBootMessage(shownText);
+                charIndex++;
+                if (charIndex >= bootText.length) {
+                    clearInterval(interval);
+                    setTimeout(() => { gameState = 'GOD_MENU'; draw(); }, 1000);
+                }
+            }, 100);
+        }
+
+        function startGodLevel(levelIndex) {
+            playStartSound(); score = 0; loadGodLevel(levelIndex);
+        }
+
+        function loadGodLevel(levelIndex) {
+            currentGodLevel = levelIndex;
+             if (levelIndex >= godLevels.length) {
+                gameState = 'GAME_OVER';
+                draw();
+                drawMessage("YOU ARE A GOD!", "ALL LEVELS COMPLETE");
+                return;
+            }
+            const levelData = godLevels[currentGodLevel];
+            currentSpeed = levelData.initialSpeed; walls = [];
+            snake = [{ x: 2, y: 1 }]; direction = {x: 0, y: 0};
+            foods = [];
+            manageFood();
+            gameState = 'PLAYING';
+            if(gameLoopInterval) clearInterval(gameLoopInterval);
+            gameLoopInterval = setInterval(gameLoop, currentSpeed);
+            updateUI();
+        }
+        
+        function gameLoop() {
+            directionChangedThisTick = false;
+            if (gameState !== 'PLAYING' || teleportAnimation.active) return;
+            frameCounter++; update(); draw();
+        }
+
+        function update() {
+            if (direction.x === 0 && direction.y === 0) return;
+            const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
+
+            if (checkCollision(head)) {
+                playGameOverSound(); gameState = 'GAME_OVER'; saveHighScore();
+                clearInterval(gameLoopInterval); draw(); return;
+            }
+
+            snake.unshift(head);
+            const ateFoodIndex = foods.findIndex(f => f.x === head.x && f.y === head.y);
+            const ateFood = ateFoodIndex !== -1;
+
+            if (ateFood) {
+                playEatSound(); 
+                score += 10;
+                if (score > highScore) { highScore = score; }
+                foods.splice(ateFoodIndex, 1);
+                
+                const levelData = godLevels[currentGodLevel];
+                if (levelData.type === 'randomWall') spawnWall();
+                else if (levelData.type === 'teleport') { initiateTeleport(); return; }
+                else if (levelData.type === 'maze' && snake.length >= levelData.grid.flat().filter(c => c === 0).length) { levelComplete(); return; }
+                
+                const newSpeed = Math.max(levelData.minSpeed, levelData.initialSpeed - Math.floor(score / 20) * levelData.speedDecrement);
+                if (newSpeed !== currentSpeed) {
+                    currentSpeed = newSpeed;
+                    clearInterval(gameLoopInterval);
+                    gameLoopInterval = setInterval(gameLoop, currentSpeed);
+                }
+                updateUI(); 
+                manageFood();
+            } else {
+                snake.pop();
+            }
+        }
+        
+        function initiateTeleport() {
+            clearInterval(gameLoopInterval);
+            teleportAnimation.active = true;
+            teleportAnimation.originalSnake = JSON.parse(JSON.stringify(snake));
+            const newHeadPos = findSafeSpot();
+            let safeDirections = [{x:1, y:0}, {x:-1, y:0}, {x:0, y:1}, {x:0, y:-1}];
+            
+            for (let i = safeDirections.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [safeDirections[i], safeDirections[j]] = [safeDirections[j], safeDirections[i]];
+            }
+
+            let newDirection;
+            for(const d of safeDirections) {
+                const checkPos = { x: newHeadPos.x + d.x, y: newHeadPos.y + d.y };
+                if (!checkCollision(checkPos, true)) { newDirection = d; break; }
+            }
+            if (!newDirection) newDirection = {x:1, y:0};
+
+            direction = newDirection;
+            teleportAnimation.newSnake = [newHeadPos];
+            animateTeleport();
+        }
+
+        function animateTeleport() {
+            if (!teleportAnimation.active) return;
+            if (teleportAnimation.originalSnake.length > 0) teleportAnimation.originalSnake.shift();
+            
+            const head = teleportAnimation.newSnake[0];
+            const newHead = { x: head.x + direction.x, y: head.y + direction.y };
+            teleportAnimation.newSnake.unshift(newHead);
+            if(teleportAnimation.newSnake.length > snake.length) teleportAnimation.newSnake.pop();
+
+            draw(); 
+
+            if (teleportAnimation.originalSnake.length === 0 && teleportAnimation.newSnake.length === snake.length) {
+                teleportAnimation.active = false;
+                snake = [...teleportAnimation.newSnake];
+                
+                if (queuedDirection) {
+                    const newDir = queuedDirection;
+                    const isReversing = (newDir === 'up' && direction.y === 1) || (newDir === 'down' && direction.y === -1) || (newDir === 'left' && direction.x === 1) || (newDir === 'right' && direction.x === -1);
+                    if (!isReversing) {
+                        if (newDir === 'up' && direction.y === 0) { direction = { x: 0, y: -1 }; }
+                        if (newDir === 'down' && direction.y === 0) { direction = { x: 0, y: 1 }; }
+                        if (newDir === 'left' && direction.x === 0) { direction = { x: -1, y: 0 }; }
+                        if (newDir === 'right' && direction.x === 0) { direction = { x: 1, y: 0 }; }
+                    }
+                    queuedDirection = null; 
+                }
+                manageFood();
+                updateUI();
+                gameLoopInterval = setInterval(gameLoop, currentSpeed);
+                return;
+            }
+            setTimeout(animateTeleport, currentSpeed / 2);
+        }
+
+        function levelComplete() {
+            clearInterval(gameLoopInterval);
+            gameState = 'LEVEL_COMPLETE';
+            currentGodLevel++;
+            draw();
+        }
+
+        function updateUIVisibility() {
+            const isPlaying = gameState === 'PLAYING';
+            backBtn.style.display = isPlaying ? 'block' : 'none';
+        }
+        
+        function draw() {
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--screen-bg');
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            drawWalls();
+            
+            if (['PLAYING', 'GAME_OVER', 'LEVEL_COMPLETE'].includes(gameState) || teleportAnimation.active) {
+                drawGameElements();
+            }
+            switch (gameState) {
+                case 'GOD_MENU': drawGodMenu(); break;
+                case 'GAME_OVER': drawMessage("GAME OVER", "CLICK/PRESS KEY"); break;
+                case 'LEVEL_COMPLETE': drawMessage("LEVEL COMPLETE!", "CLICK FOR NEXT"); break;
+            }
+            updateUIVisibility();
+        }
+        
+        function drawWalls() {
+            const levelData = godLevels[currentGodLevel];
+            const wallColor1 = getComputedStyle(document.documentElement).getPropertyValue('--wall-color-1');
+            const wallColor2 = getComputedStyle(document.documentElement).getPropertyValue('--wall-color-2');
+            
+            const drawWallBlock = (x, y) => {
+                ctx.fillStyle = wallColor1;
+                ctx.fillRect(offsetX + x, offsetY + y, GRID_SIZE, GRID_SIZE);
+                ctx.fillStyle = wallColor2;
+                ctx.fillRect(offsetX + x + GRID_SIZE * 0.1, offsetY + y + GRID_SIZE * 0.1, GRID_SIZE * 0.8, GRID_SIZE * 0.8);
+            };
+
+            if (gameState === 'GOD_MENU') {
+                for (let i = 0; i < GRID_COUNT; i++) {
+                    drawWallBlock(i * GRID_SIZE, 0);
+                    drawWallBlock(i * GRID_SIZE, (GRID_COUNT - 1) * GRID_SIZE);
+                    if (i > 0 && i < GRID_COUNT -1) {
+                        drawWallBlock(0, i * GRID_SIZE);
+                        drawWallBlock((GRID_COUNT - 1) * GRID_SIZE, i * GRID_SIZE);
+                    }
+                }
+                return;
+            }
+
+            if (levelData.type === 'maze') {
+                const grid = levelData.grid;
+                for(let r = 0; r < grid.length; r++) {
+                    for(let c = 0; c < grid[r].length; c++) {
+                        if(grid[r][c] === 1) drawWallBlock(c * GRID_SIZE, r * GRID_SIZE);
+                    }
+                }
+            } else if (levelData.type === 'randomWall' || levelData.type === 'teleport') {
+                for (let i = 0; i < GRID_COUNT; i++) {
+                    drawWallBlock(i * GRID_SIZE, 0);
+                    drawWallBlock(i * GRID_SIZE, (GRID_COUNT - 1) * GRID_SIZE);
+                    if (i > 0 && i < GRID_COUNT -1) {
+                        drawWallBlock(0, i * GRID_SIZE);
+                        drawWallBlock((GRID_COUNT - 1) * GRID_SIZE, i * GRID_SIZE);
+                    }
+                }
+                 walls.forEach(wall => drawWallBlock(wall.x * GRID_SIZE, wall.y * GRID_SIZE));
+            }
+        }
+        
+       function drawSnakeTube(snakeArray, dir) {
+            if (!snakeArray || snakeArray.length === 0) return;
+            const snakeColor = getComputedStyle(document.documentElement).getPropertyValue('--snake-color');
+            const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-color');
+            const head = snakeArray[0];
+
+            ctx.shadowColor = accentColor;
+            ctx.shadowBlur = 15;
+
+            for (let i = 1; i < snakeArray.length; i++) {
+                ctx.fillStyle = snakeColor;
+                ctx.globalAlpha = 1 - (i / snakeArray.length) * 0.5;
+                ctx.fillRect(
+                    offsetX + snakeArray[i].x * GRID_SIZE, 
+                    offsetY + snakeArray[i].y * GRID_SIZE,
+                    GRID_SIZE, 
+                    GRID_SIZE
+                );
+            }
+            ctx.globalAlpha = 1;
+            
+            ctx.fillStyle = accentColor;
+            ctx.fillRect(offsetX + head.x * GRID_SIZE, offsetY + head.y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+            
+            ctx.fillStyle = '#111827';
+            const eyeSize = GRID_SIZE * 0.15;
+            let eye1X, eye1Y, eye2X, eye2Y;
+            
+            if (dir.x !== 0) { // Horizontal
+                eye1Y = offsetY + head.y * GRID_SIZE + GRID_SIZE * 0.25;
+                eye2Y = offsetY + head.y * GRID_SIZE + GRID_SIZE * 0.75 - eyeSize;
+                eye1X = offsetX + head.x * GRID_SIZE + GRID_SIZE / 2 - eyeSize / 2 + dir.x * GRID_SIZE * 0.2;
+                eye2X = eye1X;
+            } else { // Vertical or still
+                eye1X = offsetX + head.x * GRID_SIZE + GRID_SIZE * 0.25;
+                eye2X = offsetX + head.x * GRID_SIZE + GRID_SIZE * 0.75 - eyeSize;
+                eye1Y = offsetY + head.y * GRID_SIZE + GRID_SIZE / 2 - eyeSize / 2 + dir.y * GRID_SIZE * 0.2;
+                eye2Y = eye1Y;
+            }
+            ctx.fillRect(eye1X, eye1Y, eyeSize, eyeSize);
+            ctx.fillRect(eye2X, eye2Y, eyeSize, eyeSize);
+            
+            ctx.shadowBlur = 0;
+        }
+
+       function drawGameElements() {
+            if (teleportAnimation.active) {
+                ctx.globalAlpha = 0.5;
+                drawSnakeTube(teleportAnimation.originalSnake, direction);
+                drawSnakeTube(teleportAnimation.newSnake, direction);
+                ctx.globalAlpha = 1;
+            } else {
+                drawSnakeTube(snake, direction);
+
+                const foodColor = getComputedStyle(document.documentElement).getPropertyValue('--food-color');
+                if (frameCounter % 15 < 12) {
+                    foods.forEach(food => {
+                        ctx.fillStyle = foodColor;
+                        ctx.shadowColor = foodColor;
+                        ctx.shadowBlur = 10;
+                        ctx.fillRect(offsetX + food.x * GRID_SIZE + GRID_SIZE * 0.15, offsetY + food.y * GRID_SIZE + GRID_SIZE * 0.15, GRID_SIZE * 0.7, GRID_SIZE * 0.7);
+                        ctx.shadowBlur = 0;
+                    });
+                }
+            } 
+        }
+        
+        function drawMessage(line1, line2) {
+            const screenBg = getComputedStyle(document.documentElement).getPropertyValue('--screen-bg');
+            const gameWidth = GRID_COUNT * GRID_SIZE;
+            const gameHeight = GRID_COUNT * GRID_SIZE;
+            
+            ctx.fillStyle = `${screenBg}B3`; // 70% opacity
+            ctx.fillRect(offsetX, offsetY, gameWidth, gameHeight);
+            
+            const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-color');
+            ctx.fillStyle = accentColor;
+            ctx.textAlign = 'center';
+            ctx.shadowColor = accentColor;
+            ctx.shadowBlur = 10;
+            
+            const fontSize1 = gameWidth / 15;
+            ctx.font = `bold ${fontSize1}px 'Pixel'`;
+            ctx.fillText(line1, offsetX + gameWidth / 2, offsetY + gameHeight / 2 - GRID_SIZE);
+            
+            if (line2) {
+                ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--font-color');
+                ctx.shadowBlur = 0;
+                const fontSize2 = gameWidth / 25;
+                ctx.font = `normal ${fontSize2}px 'Pixel'`;
+                ctx.fillText(line2, offsetX + gameWidth / 2, offsetY + gameHeight / 2 + GRID_SIZE * 1.5);
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        function drawBootMessage(text) {
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--screen-bg');
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            drawMessage(text);
+        }
+        
+        function drawGodMenu() {
+            drawMessage("CHOOSE CHALLENGE", "");
+            const gameWidth = GRID_COUNT * GRID_SIZE;
+            const fontSize = gameWidth / 22;
+            ctx.font = `normal ${fontSize}px 'Pixel'`;
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--font-color');
+            ctx.fillText(`1. ${godLevels[0].name}`, canvas.width / 2, canvas.height / 2 + GRID_SIZE * 2);
+            ctx.fillText(`2. ${godLevels[1].name}`, canvas.width / 2, canvas.height / 2 + GRID_SIZE * 4);
+            ctx.fillText(`3. ${godLevels[2].name}`, canvas.width / 2, canvas.height / 2 + GRID_SIZE * 6);
+        }
+        
+        function findSafeSpot() {
+            let safeSpot;
+            while (true) {
+                let onObject = false;
+                const levelData = godLevels[currentGodLevel];
+                if (levelData.type === 'maze') {
+                     const emptyCells = [];
+                      for(let r=1; r < GRID_COUNT - 1; r++) {
+                          for(let c=1; c < GRID_COUNT - 1; c++) {
+                               if (levelData.grid[r] && levelData.grid[r][c] === 0 && !snake.some(s => s.x === c && s.y === r)) {
+                                   emptyCells.push({x: c, y: r});
+                            }
+                          }
+                      }
+                      safeSpot = emptyCells.length > 0 ? emptyCells[Math.floor(Math.random() * emptyCells.length)] : {x:1, y:1};
+                } else {
+                    safeSpot = { 
+                        x: Math.floor(Math.random() * (GRID_COUNT - 2)) + 1, 
+                        y: Math.floor(Math.random() * (GRID_COUNT - 2)) + 1
+                    };
+                    if (snake.some(segment => segment.x === safeSpot.x && segment.y === safeSpot.y)) onObject = true;
+                    if (walls.some(wall => wall.x === safeSpot.x && wall.y === safeSpot.y)) onObject = true;
+                    if (foods.some(f => f.x === safeSpot.x && f.y === safeSpot.y)) onObject = true;
+                }
+                if (!onObject) break;
+            }
+            return safeSpot;
+        }
+
+        function manageFood() {
+            const targetFoodCount = snake.length > 20 ? 3 : (snake.length > 10 ? 2 : 1);
+            while (foods.length < targetFoodCount) {
+                foods.push(findSafeSpot());
+            }
+        }
+
+        function spawnWall() {
+            if (walls.length < (GRID_COUNT - 2) * (GRID_COUNT - 2) - snake.length - 5) {
+                walls.push(findSafeSpot());
+            }
+        }
+
+        function checkCollision(head, ignoreSelf = false) {
+            const levelData = godLevels[currentGodLevel];
+            if (levelData.type === 'maze') {
+                if (head.x < 0 || head.x >= GRID_COUNT || head.y < 0 || head.y >= GRID_COUNT || levelData.grid[head.y][head.x] === 1) return true;
+            } else {
+                if (head.x < 1 || head.x >= GRID_COUNT - 1 || head.y < 1 || head.y >= GRID_COUNT - 1) return true;
+                if (levelData.type === 'randomWall' && walls.some(wall => wall.x === head.x && wall.y === head.y)) return true;
+            }
+            if (ignoreSelf) return false;
+            return snake.some(segment => head.x === segment.x && head.y === segment.y);
+        }
+        
+        function updateUI() {
+            scoreElement.textContent = `SCORE: ${score.toString().padStart(4, '0')}`;
+            highScoreElement.textContent = `HI: ${highScore.toString().padStart(4, '0')}`;
+            levelElement.textContent = godLevels[currentGodLevel].name;
+        }
+        
+        function loadHighScore() { highScore = parseInt(localStorage.getItem('mambaNeonHighScore') || 0, 10); }
+        function saveHighScore() { localStorage.setItem('mambaNeonHighScore', highScore); }
+
+        function handleDirectionChange(newDir) {
+            if (teleportAnimation.active) { queuedDirection = newDir; return; }
+            if (directionChangedThisTick) return;
+
+            if (direction.x === 0 && direction.y === 0) {
+                if (newDir === 'up') direction = { x: 0, y: -1 };
+                if (newDir === 'down') direction = { x: 0, y: 1 };
+                if (newDir === 'left') direction = { x: -1, y: 0 };
+                if (newDir === 'right') direction = { x: 1, y: 0 };
+                if (direction.x !== 0 || direction.y !== 0) { directionChangedThisTick = true; }
+                return;
+            }
+            if (snake.length > 1 && ((newDir === 'up' && direction.y === 1) || (newDir === 'down' && direction.y === -1) || (newDir === 'left' && direction.x === 1) || (newDir === 'right' && direction.x === -1))) return;
+            
+            if (newDir === 'up' && direction.y === 0) { direction = { x: 0, y: -1 }; directionChangedThisTick = true; }
+            if (newDir === 'down' && direction.y === 0) { direction = { x: 0, y: 1 }; directionChangedThisTick = true; }
+            if (newDir === 'left' && direction.x === 0) { direction = { x: -1, y: 0 }; directionChangedThisTick = true; }
+            if (newDir === 'right' && direction.x === 0) { direction = { x: 1, y: 0 }; directionChangedThisTick = true; }
+        }
+
+        // --- Event Listeners ---
+        function handleInteraction(keyOrClick) {
+            initAudio();
+            if (gameState === 'GOD_MENU') {
+                if (keyOrClick === '1') startGodLevel(0);
+                if (keyOrClick === '2') startGodLevel(1);
+                if (keyOrClick === '3') startGodLevel(2); 
+                return;
+            }
+            if (gameState === 'GAME_OVER') { loadGodLevel(currentGodLevel); return; }
+            if (gameState === 'LEVEL_COMPLETE') { startGodLevel(currentGodLevel); return; }
+            if(gameState === 'PLAYING' || teleportAnimation.active) {
+                switch (keyOrClick) {
+                    case 'ArrowUp': case 'w': handleDirectionChange('up'); break;
+                    case 'ArrowDown': case 's': handleDirectionChange('down'); break;
+                    case 'ArrowLeft': case 'a': handleDirectionChange('left'); break;
+                    case 'ArrowRight': case 'd': handleDirectionChange('right'); break;
+                }
+            }
+        }
+        
+        window.addEventListener('keydown', e => handleInteraction(e.key));
+        
+        canvas.addEventListener('pointerdown', (e) => {
+            initAudio();
+            if (gameState === 'GAME_OVER' || gameState === 'LEVEL_COMPLETE') { 
+                handleInteraction(); 
+            } else if (gameState === 'GOD_MENU') {
+                 const rect = canvas.getBoundingClientRect();
+                 const y = e.clientY - rect.top;
+                 const gameHeight = GRID_COUNT * GRID_SIZE;
+                 const option1Y = offsetY + gameHeight / 2 + GRID_SIZE * 1.5;
+                 const option2Y = offsetY + gameHeight / 2 + GRID_SIZE * 3.5;
+                 const option3Y = offsetY + gameHeight / 2 + GRID_SIZE * 5.5;
+
+                 if (y > option1Y && y < option2Y) startGodLevel(0);
+                 else if (y > option2Y && y < option3Y) startGodLevel(1);
+                 else if (y > option3Y) startGodLevel(2);
+            }
+        });
+
+        backBtn.addEventListener('pointerdown', () => {
+            if (gameState !== 'PLAYING') return;
+            initAudio();
+            clearInterval(gameLoopInterval);
+            gameState = 'GOD_MENU';
+            draw();
+        });
+
+        window.addEventListener('resize', setupResponsiveLayout);
+
+        // --- Initial Call ---
+        loadHighScore(); setupResponsiveLayout(); bootSequence();
+    </script>
+</body>
+</html>
+
