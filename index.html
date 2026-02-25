@@ -116,28 +116,29 @@ canvas{display:block;}
 #dpad-wrap{
   flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
-  padding:8px 0 12px;
+  padding:10px 0 16px;
 }
 #dpad{
   display:grid;
   grid-template:". U ." "L . R" ". D .";
-  grid-template-columns:64px 64px 64px;
-  grid-template-rows:64px 64px 64px;
-  gap:7px;
+  grid-template-columns:min(22vw,96px) min(22vw,96px) min(22vw,96px);
+  grid-template-rows:min(22vw,96px) min(22vw,96px) min(22vw,96px);
+  gap:8px;
 }
 .dp{
-  background:#fff;border:none;border-radius:16px;
+  background:#fff;border:none;border-radius:20px;
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;
-  box-shadow:0 6px 0 #2c6d00, 0 9px 18px rgba(0,0,0,.28);
+  box-shadow:0 7px 0 #2c6d00, 0 10px 20px rgba(0,0,0,.3);
   transition:box-shadow .06s,transform .06s;
   touch-action:none;
+  -webkit-user-select:none;
 }
 .dp:active,.dp.pr{
   box-shadow:0 2px 0 #2c6d00, 0 4px 8px rgba(0,0,0,.2);
-  transform:translateY(4px);
+  transform:translateY(5px);
 }
-.dp svg{width:32px;height:32px;fill:#3a7000;}
+.dp svg{width:min(11vw,48px);height:min(11vw,48px);fill:#3a7000;}
 #dp-U{grid-area:U;} #dp-L{grid-area:L;} #dp-R{grid-area:R;} #dp-D{grid-area:D;}
 @keyframes pop{from{opacity:0;transform:scale(.6);}to{opacity:1;transform:scale(1);}}
 </style>
