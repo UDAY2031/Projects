@@ -47,7 +47,7 @@ html,body{
   flex-shrink:0;
   display:flex;align-items:center;justify-content:center;
   width:100%;
-  padding:6px 8px 4px;
+  padding:5px 8px 4px;
 }
 #board-frame{
   position:relative;flex-shrink:0;
@@ -128,31 +128,31 @@ canvas{display:block;}
   opacity:0;border-radius:6px;
 }
 
-/* ── DPAD — fills ALL remaining space ── */
+/* ── DPAD — fills remaining space, sensibly capped ── */
 #dpad-wrap{
   flex:1;
   display:flex;align-items:center;justify-content:center;
   width:100%;
   min-height:0;
-  padding:4px 12px 10px;
+  padding:4px 16px 10px;
 }
 #dpad{
   display:grid;
   grid-template:". U ." "L C R" ". D .";
   grid-template-columns:1fr 1fr 1fr;
   grid-template-rows:1fr 1fr 1fr;
-  gap:8px;
-  width:100%;
-  height:100%;
-  max-width:420px;
-  max-height:420px;
+  gap:clamp(5px,1.5vw,10px);
+  width:min(100%, min(100vh - 240px, 72vw));
+  height:min(100%, min(100vh - 240px, 72vw));
+  max-width:300px;
+  max-height:300px;
 }
 .dp{
   background:linear-gradient(150deg,#ffffff 0%,#dff0b8 100%);
   border:none;border-radius:22px;
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;
-  box-shadow:0 7px 0 #1a5200,0 9px 22px rgba(0,0,0,.38);
+  box-shadow:0 6px 0 #1a5200,0 8px 18px rgba(0,0,0,.35);
   transition:box-shadow .05s,transform .05s,background .05s;
   touch-action:none;
   -webkit-user-select:none;
@@ -160,7 +160,7 @@ canvas{display:block;}
 }
 .dp:active,.dp.pr{
   box-shadow:0 2px 0 #1a5200,0 3px 8px rgba(0,0,0,.22);
-  transform:translateY(5px);
+  transform:translateY(4px);
   background:linear-gradient(150deg,#eef8d0 0%,#c8e098 100%);
 }
 .dp svg{width:40%;height:40%;fill:#1e4d00;filter:drop-shadow(0 1px 2px rgba(0,0,0,.18));}
@@ -330,18 +330,29 @@ document.addEventListener('visibilitychange',()=>{
 
 // ── Layout ────────────────────────────────────────────────
 function layout(){
-  const hdrH=document.getElementById('hdr').offsetHeight||50;
-  const remaining=window.innerHeight-hdrH;
-  // Board takes up ~40% of remaining, dpad gets ~60%
-  const boardMaxH=Math.floor(remaining*0.40)-18;
-  const boardMaxW=window.innerWidth-20;
-  GS=Math.max(10,Math.min(Math.floor(boardMaxH/GN),Math.floor(boardMaxW/GN)));
-  const W=GN*GS,H=GN*GS;
-  cvs.width=W;cvs.height=H;
-  const frame=document.getElementById('board-frame');
-  frame.style.width=W+'px';frame.style.height=H+'px';
-  const ba=document.getElementById('board-area');
-  ba.style.height=(H+18)+'px';
+  const hdrH = document.getElementById('hdr').offsetHeight || 50;
+  const totalH = window.innerHeight - hdrH;
+  const totalW = window.innerWidth;
+
+  // Target: board uses ~48% of height, rest goes to dpad
+  // But also cap board width so it's never wider than screen
+  const maxBoardH = Math.floor(totalH * 0.48) - 12;
+  const maxBoardW = totalW - 20;
+  GS = Math.max(10, Math.min(Math.floor(maxBoardH / GN), Math.floor(maxBoardW / GN)));
+
+  // On tall phones (aspect > 1.8) give board a bit less room so dpad is bigger
+  const aspect = window.innerHeight / window.innerWidth;
+  if(aspect > 1.8){
+    GS = Math.max(10, Math.min(Math.floor((totalH * 0.42) / GN), Math.floor(maxBoardW / GN)));
+  }
+
+  const W = GN * GS, H = GN * GS;
+  cvs.width = W; cvs.height = H;
+  const frame = document.getElementById('board-frame');
+  frame.style.width = W + 'px';
+  frame.style.height = H + 'px';
+  const ba = document.getElementById('board-area');
+  ba.style.height = (H + 14) + 'px';
   drawFrame();
 }
 
